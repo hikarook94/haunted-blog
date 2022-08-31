@@ -18,8 +18,4 @@ class Blog < ApplicationRecord
   def owned_by?(target_user)
     user == target_user
   end
-
-  def available_premium?
-    user.premium && :random_eyecatch
-  end
 end
