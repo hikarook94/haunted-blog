@@ -47,12 +47,7 @@ class BlogsController < ApplicationController
   private
 
   def set_blog
-    return @blog = Blog.find_by!(id: params[:id], secret: false) unless user_signed_in?
-
-    blog = Blog.find(params[:id])
-    return @blog = blog unless blog.secret
-
-    set_owned_blog
+    @blog = user_signed_in? ? Blog.published_or_owned(current_user).find(params[:id]) : Blog.published.find(params[:id])
   end
 
   def set_owned_blog
