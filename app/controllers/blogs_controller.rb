@@ -3,13 +3,15 @@
 class BlogsController < ApplicationController
   skip_before_action :authenticate_user!, only: %i[index show]
 
-  before_action :set_blog, only: %i[show edit update destroy]
+  before_action :set_owned_blog, only: %i[edit update destroy]
 
   def index
     @blogs = Blog.search(params[:term]).published.default_order
   end
 
-  def show; end
+  def show
+    @blog = Blog.published_or_owned(current_user).find(params[:id])
+  end
 
   def new
     @blog = Blog.new
@@ -18,7 +20,8 @@ class BlogsController < ApplicationController
   def edit; end
 
   def create
-    @blog = current_user.blogs.new(blog_params)
+    validated_params = validate_premium_features(blog_params)
+    @blog = current_user.blogs.new(validated_params)
 
     if @blog.save
       redirect_to blog_url(@blog), notice: 'Blog was successfully created.'
@@ -28,7 +31,8 @@ class BlogsController < ApplicationController
   end
 
   def update
-    if @blog.update(blog_params)
+    validated_params = validate_premium_features(blog_params)
+    if @blog.update(validated_params)
       redirect_to blog_url(@blog), notice: 'Blog was successfully updated.'
     else
       render :edit, status: :unprocessable_entity
@@ -43,11 +47,16 @@ class BlogsController < ApplicationController
 
   private
 
-  def set_blog
-    @blog = Blog.find(params[:id])
+  def set_owned_blog
+    @blog = current_user.blogs.find(params[:id])
   end
 
   def blog_params
     params.require(:blog).permit(:title, :content, :secret, :random_eyecatch)
+  end
+
+  def validate_premium_features(params)
+    params[:random_eyecatch] = false unless current_user.premium
+    params
   end
 end
